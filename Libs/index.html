@@ -21,24 +21,24 @@
            left:0;
            border:1px solid green;
        }
-       .items{
-           width:200px;
-           box-sizing: border-box;
-           position: absolute;
-       }
+
        #container{
-           width:800px;
+           width:820px;
            margin:50px auto;
            border:1px solid green;
            box-sizing: border-box;
            position: relative;
+           height: 2000px;
        }
     </style>
     <title><%= htmlWebpackPlugin.options.title %></title>
 </head>
 <body>
+        <button id="add">Add listener</button>
+    <button id="remove">Remove listener</button>
     <div id="container">
 
     </div>
+
 </body>
 </html>
