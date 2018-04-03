@@ -1,6 +1,6 @@
 import {addTouchEvent} from '../modules/touch';
 import {addMouseEvent} from '../modules/move';
-import {init} from '../modules/waterFall';
+import {init} from '../modules/waterFall_SameW';
 import {throttle,debounce} from '../modules/commonTool';
 
 let globalSettings = {
@@ -18,14 +18,14 @@ let createElements = (count,className)=>{
     for(let i=0;i<count;i++){
         let div = document.createElement("div");
         div.className = "items";
-        if(i == 0 || i==1){
-            div.style.width = 2*size+globalSettings.paddingLeft+"px";
-            div.style.height = 2*size+globalSettings.paddingTop+"px";
-        }else{
+        // if(i == 0 || i==1){
+        //     div.style.width = 2*size+globalSettings.paddingLeft+"px";
+        //     div.style.height = 2*size+globalSettings.paddingTop+"px";
+        // }else{
             div.style.width = size+"px";
             div.style.height = size+"px";
-        }
-        //div.style.height = parseInt(Math.random()*200)+100+"px";
+        //}
+        div.style.height = parseInt(Math.random()*200)+100+"px";
         div.style.backgroundColor = getRandomColor();
         div.style.position = "absolute";
         div.style.zIndex = 10;
