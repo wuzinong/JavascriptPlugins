@@ -5,47 +5,15 @@ let options ={
     EndY:0,
     GapX:0,
     GapY:0,
-    IsMouseDown:false
+    IsMouseDown:false,
+    isListening:false
 }
 
-
-let mouseDownFunc = function(event,ele){
-    let eleStyle = getComputedStyle(ele);
-    let eleLeft = parseInt(eleStyle.left)+parseInt(eleStyle.marginLeft)+parseInt(eleStyle.paddingLeft);
-    let eleTop = parseInt(eleStyle.top)+parseInt(eleStyle.marginTop)+parseInt(eleStyle.paddingTop);
-    options.IsMouseDown = true;
-    options.StartX = event.pageX-eleLeft;
-    options.StartY = event.pageY-eleTop;
-    console.log("------------");
-    console.log(options.StartX+"-"+options.StartY)
-    myTarget = event.target; 
+function boundFunction(obj,fn){
+    return function(){ 
+        fn.apply(obj,[arguments]);
+    }
 }
-
-let mouseMoveFunc = function(event){
-    options.EndX = event.pageX-eleLeft;
-    options.EndY = event.pageY-eleTop;
-    let tempTarget = event.target;
-    if(options.IsMouseDown){
-        if(myTarget === tempTarget){
-            event.target.style.zIndex = 100;
-            moveCallback(options,event);
-        }else{
-        }
-       
-    } 
-}
-let mouseUpFunc = function(event){
-    event.target.style.zIndex = 10;
-    options.IsMouseDown = false; 
-    options.EndX = event.pageX-eleLeft;
-    options.EndY = event.pageY-eleTop; 
-
-    options.GapX = options.EndX - options.StartX;
-    options.GapY = options.EndY - options.StartY;
-
-    endCallback(options,event);
-}
-
 
 function addMouseEvent(ele,moveCallback,endCallback){ 
     let eleStyle = getComputedStyle(ele);
@@ -54,21 +22,20 @@ function addMouseEvent(ele,moveCallback,endCallback){
     
     let myTarget = null;
     
-
-
-    ele.addEventListener("mousedown",function(event){
+    let mouseDownFunc = function(event){
         let eleStyle = getComputedStyle(ele);
         let eleLeft = parseInt(eleStyle.left)+parseInt(eleStyle.marginLeft)+parseInt(eleStyle.paddingLeft);
         let eleTop = parseInt(eleStyle.top)+parseInt(eleStyle.marginTop)+parseInt(eleStyle.paddingTop);
         options.IsMouseDown = true;
         options.StartX = event.pageX-eleLeft;
         options.StartY = event.pageY-eleTop;
-        console.log("------------");
-        console.log(options.StartX+"-"+options.StartY)
+        console.log(options.StartX+"-"+options.StartY);
         myTarget = event.target; 
-    });
+    } 
 
-    ele.addEventListener("mousemove",function(event){
+    
+
+    let mouseMoveFunc = function(event){
         options.EndX = event.pageX-eleLeft;
         options.EndY = event.pageY-eleTop;
         let tempTarget = event.target;
@@ -79,19 +46,34 @@ function addMouseEvent(ele,moveCallback,endCallback){
             }else{
             }
         } 
-    });
+    }
 
-    ele.addEventListener("mouseup",function(event){
+    let mouseUpFunc = function(event){
         event.target.style.zIndex = 10;
-    options.IsMouseDown = false; 
-    options.EndX = event.pageX-eleLeft;
-    options.EndY = event.pageY-eleTop; 
+        options.IsMouseDown = false; 
+        options.EndX = event.pageX-eleLeft;
+        options.EndY = event.pageY-eleTop; 
 
-    options.GapX = options.EndX - options.StartX;
-    options.GapY = options.EndY - options.StartY;
+        options.GapX = options.EndX - options.StartX;
+        options.GapY = options.EndY - options.StartY;
 
-    endCallback(options,event);
-    });
+        endCallback(options,event);
+    }
+    if(!options.isListening){
+        options.isListening = true;
+        ele.addEventListener("mousedown",mouseDownFunc);
+        ele.addEventListener("mousemove",mouseMoveFunc);
+        ele.addEventListener("mouseup",mouseUpFunc);
+        return {
+            remove:function(){
+                options.isListening = false;
+                ele.removeEventListener("mousedown",mouseDownFunc);
+                ele.removeEventListener("mousemove",mouseMoveFunc);
+                ele.removeEventListener("mouseup",mouseUpFunc);
+            }
+        }
+    }
+    
 }
 
 function removeMouseEvent(ele){

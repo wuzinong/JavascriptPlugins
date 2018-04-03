@@ -2,6 +2,9 @@ import {addTouchEvent} from '../modules/touch';
 import {addMouseEvent,removeMouseEvent} from '../modules/move';
 import {init} from '../modules/waterFall';
 
+let globalSettings = {
+    removeListener:null
+}
 
 let container = document.querySelector("#container");
 
@@ -33,6 +36,31 @@ let getRandomColor = function(){
 let eleList = createElements(20,"items"); 
 let elements = init(container,eleList,parseInt(eleList[0].style.width),4,10);
 
+
+
+let render = (options,event)=>{
+    var target = event.target;
+    let dataIndex = target.getAttribute("data-index");
+    for(let i=0,len=elements.length;i<len;i++){
+        let temp = elements[i];  
+        let tempLeft = parseInt(temp.style.left);
+        let tempTop = parseInt(temp.style.top);
+        let leftEdge = tempLeft+parseInt(temp.style.width);
+        let topEdge= tempTop+parseInt(temp.style.height);
+        if((tempLeft<options.EndX && options.EndX<leftEdge)&&(tempTop<options.EndY && options.EndY<topEdge) && i!=dataIndex){
+            elements.splice(i,0,elements.splice(dataIndex,1)[0]);
+            
+            console.log("succeed:====")
+            console.log("当前移动元素为第："+dataIndex+" 个元素");
+            console.log("碰到了第："+i+" 个元素");
+            console.log("succeed end:====");
+            elements = init(container,eleList,parseInt(eleList[0].style.width),4,10);
+            break;
+        }
+        
+    }
+}
+
 let moveCallback = (options,event)=>{
         var target = event.target;
         var targetWidth = getComputedStyle(target).width;
@@ -48,34 +76,22 @@ let moveCallback = (options,event)=>{
 }
 
 let endCallback = (options,event)=>{
-    var target = event.target;
-    let dataIndex = target.getAttribute("data-index");
-    for(let i=0,len=elements.length;i<len;i++){
-        let temp = elements[i];  
-        let tempLeft = parseInt(temp.style.left);
-        let tempTop = parseInt(temp.style.top);
-        let leftEdge = tempLeft+parseInt(temp.style.width);
-        let topEdge= tempTop+parseInt(temp.style.height);
-        if((tempLeft<options.EndX && options.EndX<leftEdge)&&(tempTop<options.EndY && options.EndY<topEdge) && i!=dataIndex){
-            elements.splice(i,0,elements.splice(dataIndex,1)[0]);
-            
-            console.log("succeed")
-            break;
-        }
-        elements = init(container,eleList,parseInt(eleList[0].style.width),4,10);
-    }
+    render(options,event);
 }
 
 
-var a = addMouseEvent(container,moveCallback,endCallback);
+
 let add = document.querySelector("#add");
 add.addEventListener("click",function(){
-    console.log(a)
+    if(!globalSettings.removeListener){
+        globalSettings.removeListener= addMouseEvent(container,moveCallback,endCallback)
+    }
 });
 
 let remove = document.querySelector("#remove");
 remove.addEventListener("click",function(){
-    removeMouseEvent(container);
+    globalSettings.removeListener && globalSettings.removeListener.remove();
+    globalSettings.removeListener = null;
 })
 
 
