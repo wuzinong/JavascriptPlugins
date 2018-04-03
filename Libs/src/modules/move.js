@@ -1,3 +1,5 @@
+import {throttle,debounce} from '../modules/commonTool';
+
 let options ={
     StartX:0,
     StartY:0,
@@ -7,12 +9,6 @@ let options ={
     GapY:0,
     IsMouseDown:false,
     isListening:false
-}
-
-function boundFunction(obj,fn){
-    return function(){ 
-        fn.apply(obj,[arguments]);
-    }
 }
 
 function addMouseEvent(ele,moveCallback,endCallback){ 
@@ -76,17 +72,5 @@ function addMouseEvent(ele,moveCallback,endCallback){
     
 }
 
-function removeMouseEvent(ele){
-    debugger
-    ele.removeEventListener("mousedown",function(event){
-        event.preventDefault();
-    });
-    ele.removeEventListener("mousemove",function(){
-        event.preventDefault();
-    });
-    ele.removeEventListener("mouseup",function(){
-        event.preventDefault();
-    });
-}
 
-export {addMouseEvent,removeMouseEvent}
+export {addMouseEvent}
