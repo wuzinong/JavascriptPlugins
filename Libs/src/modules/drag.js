@@ -1,4 +1,3 @@
-import {throttle,debounce} from '../modules/commonTool';
 
 let options ={
     StartX:0,
@@ -11,7 +10,10 @@ let options ={
     isListening:false
 }
 
-function addMouseEvent(ele,moveCallback,endCallback){ 
+//About drag event:
+//https://developer.mozilla.org/zh-CN/docs/Web/Events/drag
+
+function addDragEvent(ele,moveCallback,endCallback){ 
     let eleStyle = getComputedStyle(ele);
     let eleLeft = parseInt(eleStyle.left)+parseInt(eleStyle.marginLeft)+parseInt(eleStyle.paddingLeft);
     let eleTop = parseInt(eleStyle.top)+parseInt(eleStyle.marginTop)+parseInt(eleStyle.paddingTop);
@@ -23,8 +25,8 @@ function addMouseEvent(ele,moveCallback,endCallback){
         let eleLeft = parseInt(eleStyle.left)+parseInt(eleStyle.marginLeft)+parseInt(eleStyle.paddingLeft);
         let eleTop = parseInt(eleStyle.top)+parseInt(eleStyle.marginTop)+parseInt(eleStyle.paddingTop);
         options.IsMouseDown = true;
-        options.StartX = event.clientX-eleLeft;
-        options.StartY = event.clientY-eleTop;
+        options.StartX = event.pageX-eleLeft;
+        options.StartY = event.pageY-eleTop;
         console.log(options.StartX+"-"+options.StartY);
         myTarget = event.target; 
     } 
@@ -32,8 +34,8 @@ function addMouseEvent(ele,moveCallback,endCallback){
     
 
     let mouseMoveFunc = function(event){
-        options.EndX = event.clientX-eleLeft;
-        options.EndY = event.clientY-eleTop;
+        options.EndX = event.pageX-eleLeft;
+        options.EndY = event.pageY-eleTop;
         let tempTarget = event.target;
         if(options.IsMouseDown){
             if(myTarget === tempTarget){
@@ -47,8 +49,8 @@ function addMouseEvent(ele,moveCallback,endCallback){
     let mouseUpFunc = function(event){
         event.target.style.zIndex = 10;
         options.IsMouseDown = false; 
-        options.EndX = event.clientX-eleLeft;
-        options.EndY = event.clientY-eleTop; 
+        options.EndX = event.pageX-eleLeft;
+        options.EndY = event.pageY-eleTop; 
 
         options.GapX = options.EndX - options.StartX;
         options.GapY = options.EndY - options.StartY;
@@ -57,15 +59,15 @@ function addMouseEvent(ele,moveCallback,endCallback){
     }
     if(!options.isListening){
         options.isListening = true;
-        ele.addEventListener("mousedown",mouseDownFunc);
-        ele.addEventListener("mousemove",mouseMoveFunc);
-        ele.addEventListener("mouseup",mouseUpFunc);
+        ele.addEventListener("dragstart",mouseDownFunc);
+        ele.addEventListener("drag",mouseMoveFunc);
+        ele.addEventListener("dragend",mouseUpFunc);
         return {
             remove:function(){
                 options.isListening = false;
-                ele.removeEventListener("mousedown",mouseDownFunc);
-                ele.removeEventListener("mousemove",mouseMoveFunc);
-                ele.removeEventListener("mouseup",mouseUpFunc);
+                ele.removeEventListener("dragstart",mouseDownFunc);
+                ele.removeEventListener("drag",mouseMoveFunc);
+                ele.removeEventListener("dragend",mouseUpFunc);
             }
         }
     }
@@ -73,4 +75,4 @@ function addMouseEvent(ele,moveCallback,endCallback){
 }
 
 
-export {addMouseEvent}
+export {addDragEvent}

@@ -1,5 +1,6 @@
 import {addTouchEvent} from '../modules/touch';
 import {addMouseEvent} from '../modules/move';
+import {addDragEvent} from '../modules/drag';
 import {init} from '../modules/waterFall_SameW';
 import {throttle,debounce} from '../modules/commonTool';
 
