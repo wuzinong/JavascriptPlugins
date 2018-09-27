@@ -61,7 +61,7 @@
 /******/ 	
 /******/ 	
 /******/ 	var hotApplyOnUpdate = true;
-/******/ 	var hotCurrentHash = "b559227fb7532884a2e5"; // eslint-disable-line no-unused-vars
+/******/ 	var hotCurrentHash = "bc29470289708aa17276"; // eslint-disable-line no-unused-vars
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule; // eslint-disable-line no-unused-vars
@@ -722,32 +722,252 @@
 /******/ 	__webpack_require__.h = function() { return hotCurrentHash; };
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return hotCreateRequire(0)(__webpack_require__.s = 0);
+/******/ 	return hotCreateRequire(1)(__webpack_require__.s = 1);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(1);
+"use strict";
 
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var throttle = function throttle(func, wait, options) {
+  /* options的默认值
+   *  表示首次调用返回值方法时，会马上调用func；否则仅会记录当前时刻，当第二次调用的时间间隔超过wait时，才调用func。
+   *  options.leading = true;
+   * 表示当调用方法时，未到达wait指定的时间间隔，则启动计时器延迟调用func函数，若后续在既未达到wait指定的时间间隔和func函数又未被调用的情况下调用返回值方法，则被调用请求将被丢弃。
+   *  options.trailing = true; 
+   * 注意：当options.trailing = false时，效果与上面的简单实现效果相同
+   */
+  var _ = {};
+  _.now = function () {
+    return new Date().getTime();
+  };
+  var context, args, result;
+  var timeout = null;
+  var previous = 0;
+  if (!options) options = {};
+  var later = function later() {
+    previous = options.leading === false ? 0 : _.now();
+    timeout = null;
+    result = func.apply(context, args);
+    if (!timeout) context = args = null;
+  };
+  return function () {
+    var now = _.now();
+    if (!previous && options.leading === false) previous = now;
+    // 计算剩余时间
+    var remaining = wait - (now - previous);
+    context = this;
+    args = arguments;
+    // 当到达wait指定的时间间隔，则调用func函数
+    // 精彩之处：按理来说remaining <= 0已经足够证明已经到达wait的时间间隔，但这里还考虑到假如客户端修改了系统时间则马上执行func函数。
+    if (remaining <= 0 || remaining > wait) {
+      // 由于setTimeout存在最小时间精度问题，因此会存在到达wait的时间间隔，但之前设置的setTimeout操作还没被执行，因此为保险起见，这里先清理setTimeout操作
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      previous = now;
+      result = func.apply(context, args);
+      if (!timeout) context = args = null;
+    } else if (!timeout && options.trailing !== false) {
+      // options.trailing=true时，延时执行func函数
+      timeout = setTimeout(later, remaining);
+    }
+    return result;
+  };
+};
+
+var debounce = function debounce(func, wait, immediate) {
+  // immediate默认为false
+  var timeout, args, context, timestamp, result;
+
+  var later = function later() {
+    // 当wait指定的时间间隔期间多次调用_.debounce返回的函数，则会不断更新timestamp的值，导致last < wait && last >= 0一直为true，从而不断启动新的计时器延时执行func
+    var last = _.now() - timestamp;
+
+    if (last < wait && last >= 0) {
+      timeout = setTimeout(later, wait - last);
+    } else {
+      timeout = null;
+      if (!immediate) {
+        result = func.apply(context, args);
+        if (!timeout) context = args = null;
+      }
+    }
+  };
+
+  return function () {
+    context = this;
+    args = arguments;
+    timestamp = _.now();
+    // 第一次调用该方法时，且immediate为true，则调用func函数
+    var callNow = immediate && !timeout;
+    // 在wait指定的时间间隔内首次调用该方法，则启动计时器定时调用func函数
+    if (!timeout) timeout = setTimeout(later, wait);
+    if (callNow) {
+      result = func.apply(context, args);
+      context = args = null;
+    }
+
+    return result;
+  };
+};
+
+exports.throttle = throttle;
+exports.debounce = debounce;
 
 /***/ }),
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
+module.exports = __webpack_require__(2);
 
-
-var _touch = __webpack_require__(2);
-
-console.log("enterrrrrr");
-
-(0, _touch.addTouchEvent)(document.getElementsByTagName('body')[0]);
-(0, _touch.addMouseEvent)(document.getElementsByTagName('body')[0]);
 
 /***/ }),
 /* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _touch = __webpack_require__(3);
+
+var _move = __webpack_require__(4);
+
+var _drag = __webpack_require__(5);
+
+var _waterFall_SameW = __webpack_require__(6);
+
+var _commonTool = __webpack_require__(0);
+
+var globalSettings = {
+    removeListener: null,
+    paddingTop: 10,
+    paddingLeft: 4,
+    basicWidth: 200
+};
+
+var container = document.querySelector("#container");
+
+var createElements = function createElements(count, className) {
+    var eleList = [];
+    var size = 200;
+    for (var i = 0; i < count; i++) {
+        var div = document.createElement("div");
+        div.className = "items";
+        // if(i == 0 || i==1){
+        //     div.style.width = 2*size+globalSettings.paddingLeft+"px";
+        //     div.style.height = 2*size+globalSettings.paddingTop+"px";
+        // }else{
+        div.style.width = size + "px";
+        div.style.height = size + "px";
+        //}
+        div.style.height = parseInt(Math.random() * 200) + 100 + "px";
+        div.style.backgroundColor = getRandomColor();
+        div.style.position = "absolute";
+        div.style.zIndex = 10;
+        div.style.boxSizing = "border-box";
+        div.className = className;
+        div.innerText = i;
+        div.setAttribute("data-index", i);
+        eleList.push(div);
+    }
+    return eleList;
+};
+
+var getRandomColor = function getRandomColor() {
+    var r = Math.floor(Math.random() * 256); //随机生成256以内r值
+    var g = Math.floor(Math.random() * 256); //随机生成256以内g值
+    var b = Math.floor(Math.random() * 256); //随机生成256以内b值
+    return 'rgb(' + r + ',' + g + ',' + b + ')'; //返回rgb(r,g,b)格式颜色 
+};
+var eleList = createElements(30, "items");
+var elements = (0, _waterFall_SameW.init)(container, eleList, globalSettings.basicWidth, globalSettings.paddingLeft, globalSettings.paddingTop);
+
+var render = function render(options, event, step) {
+    var target = event.target;
+    var dataIndex = target.getAttribute("data-index");
+    var isHit = false;
+    var gap = 0;
+    for (var i = 0, len = elements.length; i < len; i++) {
+        var temp = elements[i];
+        if (temp) {
+            var tempLeft = parseInt(temp.style.left) + gap;
+            var tempTop = parseInt(temp.style.top) - gap;
+            var leftEdge = tempLeft + parseInt(temp.style.width);
+            var topEdge = tempTop + parseInt(temp.style.height);
+            if (tempLeft < options.EndX && options.EndX < leftEdge && tempTop < options.EndY && options.EndY < topEdge && i != dataIndex) {
+                elements.splice(i, 0, elements.splice(dataIndex, 1)[0]);
+                elements = (0, _waterFall_SameW.init)(container, eleList, globalSettings.basicWidth, globalSettings.paddingLeft, globalSettings.paddingTop);
+                isHit = true;
+                break;
+            }
+        }
+    }
+    if (step && step === "end") {
+        if (!isHit) {
+            elements = (0, _waterFall_SameW.init)(container, eleList, globalSettings.basicWidth, globalSettings.paddingLeft, globalSettings.paddingTop);
+        }
+    }
+};
+
+var moveCallback = function moveCallback(options, event) {
+    var target = event.target;
+    var targetWidth = getComputedStyle(target).width;
+    var targetHeight = getComputedStyle(target).height;
+    if (target.getAttribute("class") === "items") {
+        var left = options.EndX - parseInt(targetWidth) / 2 + "px";
+        var top = options.EndY - parseInt(targetHeight) / 2 + "px";
+        target.style.left = left;
+        target.style.top = top;
+        render(options, event, "move");
+    }
+};
+
+var endCallback = function endCallback(options, event) {
+    render(options, event, "end");
+};
+
+var add = document.querySelector("#add");
+add.addEventListener("click", function () {
+    if (!globalSettings.removeListener) {
+        globalSettings.removeListener = (0, _move.addMouseEvent)(container, moveCallback, endCallback);
+    }
+});
+
+var remove = document.querySelector("#remove");
+remove.addEventListener("click", function () {
+    globalSettings.removeListener && globalSettings.removeListener.remove();
+    globalSettings.removeListener = null;
+});
+
+// const settings = {
+//     target:document.querySelector("#test"),
+//     body:document.querySelector("body")
+// }
+
+// let mouseCallBack = (options,event)=>{
+//         var target = event.target;
+//         var targetWidth = getComputedStyle(target).width;
+//         var targetHeight = getComputedStyle(target).height;
+//         if(target.getAttribute("id")==="test"){
+//             console.log(target);
+//             target.style.left = options.EndX-parseInt(targetWidth)/2+"px";
+//             target.style.top = options.EndY-parseInt(targetHeight)/2+"px";
+//         }
+// }
+
+// addTouchEvent(settings.body,mouseCallBack);
+// addMouseEvent(settings.body,mouseCallBack);
+
+/***/ }),
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -757,67 +977,65 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var positionMark = {
+var options = {
     StartX: 0,
     StartY: 0,
     EndX: 0,
     EndY: 0,
     GapX: 0,
     GapY: 0,
-    direction: ""
+    direction: "",
+    IsMouseDown: false
 };
 
 function goDirection() {
-    positionMark.GapX = positionMark.EndX - positionMark.StartX;
-    positionMark.GapY = positionMark.EndY - positionMark.StartY;
-    console.log(positionMark.GapX + ":aaaa:" + positionMark.GapY);
+    options.GapX = options.EndX - options.StartX;
+    options.GapY = options.EndY - options.StartY;
 
-    if (Math.abs(positionMark.GapX) < 50 && Math.abs(positionMark.GapY) < 50) //移动距离过小则不做任何操作
+    if (Math.abs(options.GapX) < 50 && Math.abs(options.GapY) < 50) //移动距离过小则不做任何操作
         {
             return false;
         } else {
-        if (Math.abs(positionMark.GapX) > Math.abs(positionMark.GapY)) {
+        if (Math.abs(options.GapX) > Math.abs(options.GapY)) {
             //左右滑动
-            if (positionMark.GapX < 0) {
-                positionMark.direction = "Left";
+            if (options.GapX < 0) {
+                options.direction = "Left";
             } else {
-                positionMark.direction = "Right";
+                options.direction = "Right";
             }
         } else {
             //上下滑动
-            if (positionMark.GapY < 0) {
-                positionMark.direction = "Up";
+            if (options.GapY < 0) {
+                options.direction = "Up";
             } else {
-                positionMark.direction = "Down";
+                options.direction = "Down";
             }
         }
     }
 }
 
-function addEvent(ele) {
+function addTouchEvent(ele, callback) {
     ele.addEventListener("touchstart", function (e) {
-        positionMark.StartX = e.targetTouches[0].pageX;
-        positionMark.StartY = e.targetTouches[0].pageY;
+        options.IsMouseDown = true;
+        options.StartX = e.targetTouches[0].pageX;
+        options.StartY = e.targetTouches[0].pageY;
         e.preventDefault();
-
-        console.log("start");
-        console.log(positionMark);
     });
     ele.addEventListener("touchmove", function (e) {
-        positionMark.EndX = e.changedTouches[0].pageX;
-        positionMark.EndY = e.changedTouches[0].pageY;
-        console.log("touchmove");
-        console.log(positionMark);
+        options.EndX = e.changedTouches[0].pageX;
+        options.EndY = e.changedTouches[0].pageY;
+        if (options.IsMouseDown) {
+            callback(options, event);
+        }
     });
     ele.addEventListener("touchend", function (e) {
-        positionMark.EndX = e.changedTouches[0].pageX;
-        positionMark.EndY = e.changedTouches[0].pageY;
-        console.log("end");
-        console.log(positionMark);
+        options.IsMouseDown = false;
+        options.EndX = e.changedTouches[0].pageX;
+        options.EndY = e.changedTouches[0].pageY;
     });
 
     //goDirection();
-    // switch(positionMark.direction){
+    // switch(options.direction){
     //   case "Left":game.moveLeft();break;
     //   case "Up":game.moveUp();break;
     //   case "Right":game.moveRight();break;
@@ -827,7 +1045,253 @@ function addEvent(ele) {
 
 }
 
-exports.addEvent = addEvent;
+exports.addTouchEvent = addTouchEvent;
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.addMouseEvent = undefined;
+
+var _commonTool = __webpack_require__(0);
+
+var options = {
+    StartX: 0,
+    StartY: 0,
+    EndX: 0,
+    EndY: 0,
+    GapX: 0,
+    GapY: 0,
+    IsMouseDown: false,
+    isListening: false
+};
+
+function addMouseEvent(ele, moveCallback, endCallback) {
+    var eleStyle = getComputedStyle(ele);
+    var eleLeft = parseInt(eleStyle.left) + parseInt(eleStyle.marginLeft) + parseInt(eleStyle.paddingLeft);
+    var eleTop = parseInt(eleStyle.top) + parseInt(eleStyle.marginTop) + parseInt(eleStyle.paddingTop);
+
+    var myTarget = null;
+
+    var mouseDownFunc = function mouseDownFunc(event) {
+        var eleStyle = getComputedStyle(ele);
+        var eleLeft = parseInt(eleStyle.left) + parseInt(eleStyle.marginLeft) + parseInt(eleStyle.paddingLeft);
+        var eleTop = parseInt(eleStyle.top) + parseInt(eleStyle.marginTop) + parseInt(eleStyle.paddingTop);
+        options.IsMouseDown = true;
+        options.StartX = event.clientX - eleLeft;
+        options.StartY = event.clientY - eleTop;
+        console.log(options.StartX + "-" + options.StartY);
+        myTarget = event.target;
+    };
+
+    var mouseMoveFunc = function mouseMoveFunc(event) {
+        options.EndX = event.clientX - eleLeft;
+        options.EndY = event.clientY - eleTop;
+        var tempTarget = event.target;
+        if (options.IsMouseDown) {
+            if (myTarget === tempTarget) {
+                event.target.style.zIndex = 100;
+                moveCallback(options, event);
+            } else {}
+        }
+    };
+
+    var mouseUpFunc = function mouseUpFunc(event) {
+        event.target.style.zIndex = 10;
+        options.IsMouseDown = false;
+        options.EndX = event.clientX - eleLeft;
+        options.EndY = event.clientY - eleTop;
+
+        options.GapX = options.EndX - options.StartX;
+        options.GapY = options.EndY - options.StartY;
+
+        endCallback(options, event);
+    };
+    if (!options.isListening) {
+        options.isListening = true;
+        ele.addEventListener("mousedown", mouseDownFunc);
+        ele.addEventListener("mousemove", mouseMoveFunc);
+        ele.addEventListener("mouseup", mouseUpFunc);
+        return {
+            remove: function remove() {
+                options.isListening = false;
+                ele.removeEventListener("mousedown", mouseDownFunc);
+                ele.removeEventListener("mousemove", mouseMoveFunc);
+                ele.removeEventListener("mouseup", mouseUpFunc);
+            }
+        };
+    }
+}
+
+exports.addMouseEvent = addMouseEvent;
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var options = {
+    StartX: 0,
+    StartY: 0,
+    EndX: 0,
+    EndY: 0,
+    GapX: 0,
+    GapY: 0,
+    IsMouseDown: false,
+    isListening: false
+
+    //About drag event:
+    //https://developer.mozilla.org/zh-CN/docs/Web/Events/drag
+
+};function addDragEvent(ele, moveCallback, endCallback) {
+    var eleStyle = getComputedStyle(ele);
+    var eleLeft = parseInt(eleStyle.left) + parseInt(eleStyle.marginLeft) + parseInt(eleStyle.paddingLeft);
+    var eleTop = parseInt(eleStyle.top) + parseInt(eleStyle.marginTop) + parseInt(eleStyle.paddingTop);
+
+    var myTarget = null;
+
+    var mouseDownFunc = function mouseDownFunc(event) {
+        var eleStyle = getComputedStyle(ele);
+        var eleLeft = parseInt(eleStyle.left) + parseInt(eleStyle.marginLeft) + parseInt(eleStyle.paddingLeft);
+        var eleTop = parseInt(eleStyle.top) + parseInt(eleStyle.marginTop) + parseInt(eleStyle.paddingTop);
+        options.IsMouseDown = true;
+        options.StartX = event.pageX - eleLeft;
+        options.StartY = event.pageY - eleTop;
+        console.log(options.StartX + "-" + options.StartY);
+        myTarget = event.target;
+    };
+
+    var mouseMoveFunc = function mouseMoveFunc(event) {
+        options.EndX = event.pageX - eleLeft;
+        options.EndY = event.pageY - eleTop;
+        var tempTarget = event.target;
+        if (options.IsMouseDown) {
+            if (myTarget === tempTarget) {
+                event.target.style.zIndex = 100;
+                moveCallback(options, event);
+            } else {}
+        }
+    };
+
+    var mouseUpFunc = function mouseUpFunc(event) {
+        event.target.style.zIndex = 10;
+        options.IsMouseDown = false;
+        options.EndX = event.pageX - eleLeft;
+        options.EndY = event.pageY - eleTop;
+
+        options.GapX = options.EndX - options.StartX;
+        options.GapY = options.EndY - options.StartY;
+
+        endCallback(options, event);
+    };
+    if (!options.isListening) {
+        options.isListening = true;
+        ele.addEventListener("dragstart", mouseDownFunc);
+        ele.addEventListener("drag", mouseMoveFunc);
+        ele.addEventListener("dragend", mouseUpFunc);
+        return {
+            remove: function remove() {
+                options.isListening = false;
+                ele.removeEventListener("dragstart", mouseDownFunc);
+                ele.removeEventListener("drag", mouseMoveFunc);
+                ele.removeEventListener("dragend", mouseUpFunc);
+            }
+        };
+    }
+}
+
+exports.addDragEvent = addDragEvent;
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var settings = {
+    colPosition: []
+
+    // function createDiv(){
+    //     let size = 200;
+    //     let div = document.createElement("div");
+    //     div.className = "items testItem";
+
+    //         div.style.width = size+"px";
+    //         div.style.height = size+"px";
+
+    //     //div.style.height = parseInt(Math.random()*200)+100+"px"; 
+    //     div.style.position = "absolute";
+    //     div.style.zIndex = 10;
+    //     div.style.boxSizing = "border-box"; 
+    //     div.innerText = "dsfsdfsdfsdf";
+    //     div.setAttribute("data-index",10); 
+    //     return div;
+    // }
+
+};function renderLayout(ele, i) {
+    ele.setAttribute("data-x", parseInt(ele.style.left));
+    ele.setAttribute("data-y", parseInt(ele.style.top));
+    ele.setAttribute("data-width", parseInt(ele.style.width));
+    ele.setAttribute("data-height", parseInt(ele.style.height));
+    ele.setAttribute("data-index", i);
+    container.appendChild(ele);
+}
+
+function init(container, elements, itemWidth, paddingLeft, paddingTop) {
+    var containerStyle = getComputedStyle(container);
+    var c_width = parseInt(containerStyle.width);
+    var cycle = parseInt(c_width / itemWidth);
+    var fragment = document.createDocumentFragment();
+    for (var i = 0, len = elements.length; i < len; i++) {
+        var ele = elements[i];
+        if (ele) {
+            var preEle = elements[i - 1];
+            var preItemStyle = preEle && getComputedStyle(preEle);
+            var itemStyle = getComputedStyle(ele);
+            var i_height = itemStyle.height;
+            var eleTimes = parseInt(ele.style.width) / itemWidth;
+
+            if (i < cycle) {
+                if (i === 0) {
+                    ele.style.top = 0 + "px";
+                    ele.style.left = paddingLeft + "px";
+                } else {
+                    ele.style.top = 0 + "px";
+                    ele.style.left = paddingLeft + parseInt(preItemStyle.left) + itemWidth + "px";
+                }
+            } else {
+                var preTopIndex = i - cycle;
+                preEle = elements[preTopIndex];
+                ele.style.top = parseInt(elements[preTopIndex].style.top) + parseInt(preEle.style.height) + paddingTop + "px";
+                if (preTopIndex == 0) {
+                    ele.style.left = paddingLeft + "px";
+                } else {
+                    ele.style.left = parseInt(preEle.style.left) + "px";
+                }
+            }
+            renderLayout(ele, i);
+        }
+    }
+    return elements;
+}
+
+exports.init = init;
 
 /***/ })
 /******/ ]);
